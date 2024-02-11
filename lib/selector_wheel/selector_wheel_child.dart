@@ -4,12 +4,18 @@ class SelectorWheelChild extends StatelessWidget {
   final double width;
   final double height;
   final String value;
+  final bool selected;
+  final TextStyle? notHighlightedTextStyle;
+  final TextStyle? highlightedTextStyle;
 
   const SelectorWheelChild({
     super.key,
     required this.width,
     required this.height,
     required this.value,
+    required this.selected,
+    this.notHighlightedTextStyle,
+    this.highlightedTextStyle,
   });
 
   @override
@@ -22,9 +28,9 @@ class SelectorWheelChild extends StatelessWidget {
           value,
           softWrap: false,
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+          style: selected || notHighlightedTextStyle == null
+              ? highlightedTextStyle
+              : notHighlightedTextStyle,
         ),
       ),
     );

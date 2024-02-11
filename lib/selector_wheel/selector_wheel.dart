@@ -81,6 +81,9 @@ class SelectorWheel<T> extends StatefulWidget {
 
   final double? diameterRatio;
 
+  final TextStyle? notHighlightedTextStyle;
+  final TextStyle? highlightedTextStyle;
+
   const SelectorWheel({
     super.key,
     this.selectedItemIndex,
@@ -97,6 +100,8 @@ class SelectorWheel<T> extends StatefulWidget {
     this.highlightWidth,
     this.perspective,
     this.diameterRatio,
+    this.notHighlightedTextStyle,
+    this.highlightedTextStyle,
   }) : assert(fadeOutHeightFraction >= 0.0 && fadeOutHeightFraction <= 1.0);
 
   @override
@@ -179,6 +184,9 @@ class _SelectorWheelState<T> extends State<SelectorWheel<T>> {
             onValueChanged: widget.onValueChanged,
             perspective: widget.perspective,
             diameterRatio: widget.diameterRatio,
+            notHighlightedTextStyle: widget.notHighlightedTextStyle,
+            selectedItemIndex: widget.selectedItemIndex,
+            highlightedTextStyle: widget.highlightedTextStyle,
           ),
         ),
         if (enableFadeOut) ...[
