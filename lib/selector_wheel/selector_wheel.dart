@@ -83,6 +83,8 @@ class SelectorWheel<T> extends StatefulWidget {
 
   final TextStyle? notHighlightedTextStyle;
   final TextStyle? highlightedTextStyle;
+  final Axis scrollDirection;
+  final bool blendMode;
 
   const SelectorWheel({
     super.key,
@@ -102,6 +104,8 @@ class SelectorWheel<T> extends StatefulWidget {
     this.diameterRatio,
     this.notHighlightedTextStyle,
     this.highlightedTextStyle,
+    this.scrollDirection = Axis.vertical,
+    this.blendMode = false,
   }) : assert(fadeOutHeightFraction >= 0.0 && fadeOutHeightFraction <= 1.0);
 
   @override
@@ -112,6 +116,8 @@ class _SelectorWheelState<T> extends State<SelectorWheel<T>> {
   late final FixedExtentScrollController _controller;
 
   late final StreamController<T> _streamController;
+
+  final GlobalKey _highlightedWidgetGlobalKey = GlobalKey();
 
   @override
   void initState() {
@@ -163,61 +169,72 @@ class _SelectorWheelState<T> extends State<SelectorWheel<T>> {
     final borderRadius =
         widget.highlightBorderRadius ?? BorderRadius.circular(8.0);
 
-    return Stack(
-      children: [
-        Align(
-          alignment: Alignment.center,
-          child: SelectorWheelHighlight(
-            height: widget.highlightHeight ?? widget.childHeight,
-            width: widget.highlightWidth ?? widget.width,
-            borderRadius: borderRadius,
-          ),
-        ),
-        Align(
-          alignment: Alignment.center,
-          child: SelectorWheelWheel(
-            controller: _controller,
-            childCount: widget.childCount,
-            height: widget.childHeight,
-            width: widget.width,
-            convertIndexToValue: widget.convertIndexToValue,
-            onValueChanged: widget.onValueChanged,
-            perspective: widget.perspective,
-            diameterRatio: widget.diameterRatio,
-            notHighlightedTextStyle: widget.notHighlightedTextStyle,
-            selectedItemIndex: widget.selectedItemIndex,
-            highlightedTextStyle: widget.highlightedTextStyle,
-          ),
-        ),
-        if (enableFadeOut) ...[
+    return RotatedBox(
+      quarterTurns: widget.scrollDirection == Axis.horizontal ? 3 : 0,
+      child: Stack(
+        children: [
           Align(
-            alignment: Alignment.topCenter,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SelectorWheelFadeGradient(
-                  height: constraints.maxHeight * widget.fadeOutHeightFraction,
-                  width: widget.width,
-                  color: surfaceColor,
-                  direction: SelectorWheelFadeGradientDirection.toBottom,
-                );
-              },
+            alignment: Alignment.center,
+            child: Center(
+              child: SelectorWheelHighlight(
+                height: widget.highlightHeight ?? widget.childHeight,
+                width: widget.highlightWidth ?? widget.width,
+                borderRadius: borderRadius,
+                key: _highlightedWidgetGlobalKey,
+              ),
             ),
           ),
           Align(
-            alignment: Alignment.bottomCenter,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SelectorWheelFadeGradient(
-                  height: constraints.maxHeight * widget.fadeOutHeightFraction,
-                  width: widget.width,
-                  color: surfaceColor,
-                  direction: SelectorWheelFadeGradientDirection.toTop,
-                );
-              },
+            alignment: Alignment.center,
+            child: SelectorWheelWheel(
+              controller: _controller,
+              childCount: widget.childCount,
+              height: widget.childHeight,
+              width: widget.width,
+              convertIndexToValue: widget.convertIndexToValue,
+              onValueChanged: widget.onValueChanged,
+              perspective: widget.perspective,
+              diameterRatio: widget.diameterRatio,
+              notHighlightedTextStyle: widget.notHighlightedTextStyle,
+              selectedItemIndex: widget.selectedItemIndex,
+              highlightedTextStyle: widget.highlightedTextStyle,
+              scrollDirection: widget.scrollDirection,
+              highlightedWidgetGlobalKey: _highlightedWidgetGlobalKey,
+              blendMode: widget.blendMode,
             ),
-          )
+          ),
+          if (enableFadeOut) ...[
+            Align(
+              alignment: Alignment.topCenter,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SelectorWheelFadeGradient(
+                    height:
+                        constraints.maxHeight * widget.fadeOutHeightFraction,
+                    width: widget.width,
+                    color: surfaceColor,
+                    direction: SelectorWheelFadeGradientDirection.toBottom,
+                  );
+                },
+              ),
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SelectorWheelFadeGradient(
+                    height:
+                        constraints.maxHeight * widget.fadeOutHeightFraction,
+                    width: widget.width,
+                    color: surfaceColor,
+                    direction: SelectorWheelFadeGradientDirection.toTop,
+                  );
+                },
+              ),
+            )
+          ],
         ],
-      ],
+      ),
     );
   }
 }

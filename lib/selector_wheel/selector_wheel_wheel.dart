@@ -16,21 +16,27 @@ class SelectorWheelWheel<T> extends StatefulWidget {
   final int? selectedItemIndex;
   final TextStyle? notHighlightedTextStyle;
   final TextStyle? highlightedTextStyle;
+  final Axis scrollDirection;
+  final GlobalKey highlightedWidgetGlobalKey;
+  final bool blendMode;
 
-  const SelectorWheelWheel(
-      {Key? key,
-      required this.width,
-      required this.height,
-      required this.childCount,
-      required this.controller,
-      required this.convertIndexToValue,
-      required this.onValueChanged,
-      this.perspective,
-      this.diameterRatio,
-      this.selectedItemIndex,
-      this.notHighlightedTextStyle,
-      this.highlightedTextStyle})
-      : super(key: key);
+  const SelectorWheelWheel({
+    Key? key,
+    required this.width,
+    required this.height,
+    required this.childCount,
+    required this.controller,
+    required this.convertIndexToValue,
+    required this.onValueChanged,
+    this.perspective,
+    this.diameterRatio,
+    this.selectedItemIndex,
+    this.notHighlightedTextStyle,
+    this.highlightedTextStyle,
+    required this.scrollDirection,
+    required this.highlightedWidgetGlobalKey,
+    required this.blendMode,
+  }) : super(key: key);
 
   @override
   State<SelectorWheelWheel<T>> createState() => _SelectorWheelWheelState<T>();
@@ -38,19 +44,45 @@ class SelectorWheelWheel<T> extends StatefulWidget {
 
 class _SelectorWheelWheelState<T> extends State<SelectorWheelWheel<T>> {
   int currentIndex = 0;
+  bool isScrolling = false;
+  Rect highlightedWidgetRect = Rect.zero;
+
+  Rect getWidgetRect(BuildContext parentBoxContext, BuildContext boxContext) {
+    RenderBox box = boxContext.findRenderObject() as RenderBox;
+    RenderBox parentBox = parentBoxContext.findRenderObject() as RenderBox;
+    Offset position = box.localToGlobal(
+      Offset.zero,
+      // ancestor: parentBox,
+    ); //this is global position
+
+    // print("box.size.width: ${box.size.width}");
+
+    return (position & box.size);
+  }
 
   @override
   void initState() {
-    if (widget.selectedItemIndex != null) {
-      currentIndex = widget.selectedItemIndex!;
-    }
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      setState(() {
+        if (widget.selectedItemIndex != null) {
+          currentIndex = widget.selectedItemIndex!;
+        }
+        highlightedWidgetRect = getWidgetRect(
+          context,
+          widget.highlightedWidgetGlobalKey.currentContext!,
+        );
+        print("highlightedWidgetRect: $highlightedWidgetRect");
+      });
+    });
+
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       width: widget.width,
+      color: Colors.transparent,
       child: NotificationListener(
         onNotification: (notification) {
           if (notification is ScrollEndNotification) {
@@ -58,11 +90,19 @@ class _SelectorWheelWheelState<T> extends State<SelectorWheelWheel<T>> {
 
             WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
               setState(() {
+                // isScrolling = false;
                 currentIndex = index;
               });
             });
 
             widget.onValueChanged(widget.convertIndexToValue(index));
+          } else if (notification is ScrollUpdateNotification &&
+              widget.blendMode) {
+            WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+              setState(() {
+                isScrolling = true;
+              });
+            });
           }
 
           return false;
@@ -76,13 +116,19 @@ class _SelectorWheelWheelState<T> extends State<SelectorWheelWheel<T>> {
           childDelegate: ListWheelChildBuilderDelegate(
             childCount: widget.childCount,
             builder: (context, index) {
-              return SelectorWheelChild(
-                width: widget.width,
-                height: widget.height,
-                selected: index == currentIndex,
-                value: widget.convertIndexToValue(index).label,
-                notHighlightedTextStyle: widget.notHighlightedTextStyle,
-                highlightedTextStyle: widget.highlightedTextStyle,
+              return RotatedBox(
+                quarterTurns: widget.scrollDirection == Axis.horizontal ? 1 : 0,
+                child: SelectorWheelChild(
+                  width: widget.width,
+                  height: widget.height,
+                  selected: index == currentIndex,
+                  value: widget.convertIndexToValue(index).label,
+                  notHighlightedTextStyle: widget.notHighlightedTextStyle,
+                  highlightedTextStyle: widget.highlightedTextStyle,
+                  highlightedWidgetRect: highlightedWidgetRect,
+                  scrollDirection: widget.scrollDirection,
+                  blendMode: widget.blendMode,
+                ),
               );
             },
           ),
