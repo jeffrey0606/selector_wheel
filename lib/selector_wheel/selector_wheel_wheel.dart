@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:selector_wheel/selector_wheel/utils.dart';
 
 import 'models/selector_wheel_value.dart';
 import 'selector_wheel_child.dart';
@@ -17,7 +18,8 @@ class SelectorWheelWheel<T> extends StatefulWidget {
   final TextStyle? notHighlightedTextStyle;
   final TextStyle? highlightedTextStyle;
   final Axis scrollDirection;
-  final GlobalKey highlightedWidgetGlobalKey;
+  final BuildContext containerContext;
+  final BuildContext? highlightedWidgetContext;
   final bool blendMode;
 
   const SelectorWheelWheel({
@@ -34,8 +36,9 @@ class SelectorWheelWheel<T> extends StatefulWidget {
     this.notHighlightedTextStyle,
     this.highlightedTextStyle,
     required this.scrollDirection,
-    required this.highlightedWidgetGlobalKey,
+    required this.containerContext,
     required this.blendMode,
+    required this.highlightedWidgetContext,
   }) : super(key: key);
 
   @override
@@ -47,19 +50,6 @@ class _SelectorWheelWheelState<T> extends State<SelectorWheelWheel<T>> {
   bool isScrolling = false;
   Rect highlightedWidgetRect = Rect.zero;
 
-  Rect getWidgetRect(BuildContext parentBoxContext, BuildContext boxContext) {
-    RenderBox box = boxContext.findRenderObject() as RenderBox;
-    RenderBox parentBox = parentBoxContext.findRenderObject() as RenderBox;
-    Offset position = box.localToGlobal(
-      Offset.zero,
-      // ancestor: parentBox,
-    ); //this is global position
-
-    // print("box.size.width: ${box.size.width}");
-
-    return (position & box.size);
-  }
-
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
@@ -67,15 +57,39 @@ class _SelectorWheelWheelState<T> extends State<SelectorWheelWheel<T>> {
         if (widget.selectedItemIndex != null) {
           currentIndex = widget.selectedItemIndex!;
         }
-        highlightedWidgetRect = getWidgetRect(
-          context,
-          widget.highlightedWidgetGlobalKey.currentContext!,
-        );
-        print("highlightedWidgetRect: $highlightedWidgetRect");
+        if (widget.highlightedWidgetContext != null) {
+          highlightedWidgetRect = widget.highlightedWidgetContext!
+                  .globalPaintRect(widget.containerContext) ??
+              Rect.zero;
+        }
       });
+
+      widget.onValueChanged(
+          widget.convertIndexToValue(widget.controller.selectedItem));
     });
 
     super.initState();
+  }
+
+  @override
+  void didUpdateWidget(covariant SelectorWheelWheel<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.highlightedWidgetContext != null &&
+        widget.highlightedWidgetContext != oldWidget.highlightedWidgetContext) {
+      highlightedWidgetRect = widget.highlightedWidgetContext!
+              .globalPaintRect(widget.containerContext) ??
+          Rect.zero;
+    }
+    if (widget.childCount != oldWidget.childCount) {
+      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+        setState(() {
+          // isScrolling = false;
+          currentIndex = widget.controller.selectedItem;
+        });
+
+        widget.onValueChanged(widget.convertIndexToValue(currentIndex));
+      });
+    }
   }
 
   @override
@@ -128,6 +142,7 @@ class _SelectorWheelWheelState<T> extends State<SelectorWheelWheel<T>> {
                   highlightedWidgetRect: highlightedWidgetRect,
                   scrollDirection: widget.scrollDirection,
                   blendMode: widget.blendMode,
+                  containerContext: widget.containerContext,
                 ),
               );
             },

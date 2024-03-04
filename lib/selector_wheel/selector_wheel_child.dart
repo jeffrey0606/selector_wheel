@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:selector_wheel/selector_wheel/blendmask.dart';
+import 'package:selector_wheel/selector_wheel/utils.dart';
 
-class SelectorWheelChild extends StatelessWidget {
+class SelectorWheelChild extends StatefulWidget {
   final double width;
   final double height;
   final String value;
@@ -11,6 +12,7 @@ class SelectorWheelChild extends StatelessWidget {
   final Rect highlightedWidgetRect;
   final Axis scrollDirection;
   final bool blendMode;
+  final BuildContext containerContext;
 
   const SelectorWheelChild({
     super.key,
@@ -23,85 +25,70 @@ class SelectorWheelChild extends StatelessWidget {
     required this.highlightedWidgetRect,
     required this.scrollDirection,
     required this.blendMode,
+    required this.containerContext,
   });
 
-  Rect? getWidgetRect(BuildContext boxContext) {
-    RenderBox? box = boxContext.findRenderObject() as RenderBox?;
+  @override
+  State<SelectorWheelChild> createState() => _SelectorWheelChildState();
+}
 
-    if (box == null) {
-      return null;
-    }
-    Offset position = box.localToGlobal(
-      Offset.zero,
-      // ancestor: parentBox,
-    ); //this is global position
-
-    // print("box.size.width: ${box.size.width}");
-
-    return (position & box.size);
-  }
-
+class _SelectorWheelChildState extends State<SelectorWheelChild> {
   @override
   Widget build(BuildContext context) {
-    if (!blendMode) {
+    if (!widget.blendMode) {
       return SizedBox(
-        width: width,
-        height: height,
+        width: widget.width,
+        height: widget.height,
         child: Center(
           child: Text(
-            value,
+            widget.value,
             softWrap: false,
             textAlign: TextAlign.center,
-            style: selected || notHighlightedTextStyle == null
-                ? highlightedTextStyle
-                : notHighlightedTextStyle,
+            style: widget.selected || widget.notHighlightedTextStyle == null
+                ? widget.highlightedTextStyle
+                : widget.notHighlightedTextStyle,
           ),
         ),
       );
     }
-    final text = Builder(builder: (textContext) {
-      final rect = getWidgetRect(textContext) ?? Rect.zero;
-      // if (selected) {
-      //   print(
-      //       "highlightedWidgetRect: dx: ${highlightedWidgetRect.left.ceil()} | dy: ${highlightedWidgetRect.top.ceil()} | width: ${highlightedWidgetRect.width} | height: ${highlightedWidgetRect.height}");
+    final text = Builder(
+      builder: (textContext) {
+        final rect =
+            textContext.globalPaintRect(widget.containerContext) ?? Rect.zero;
 
-      //   print(
-      //       "rect: width: dx: ${rect.left.ceil()} | dy: ${rect.top.ceil()}  width: ${rect.width} | height: ${rect.height}");
-      // }
+        final intersection = widget.highlightedWidgetRect.intersect(rect);
 
-      final intersection = highlightedWidgetRect.intersect(rect);
-      // if (selected) {
-      //   print(
-      //       "intersection width: ${intersection.width.ceil()} | height: ${intersection.height.ceil()}");
-      // }
+        bool isIntersecting = Axis.horizontal == widget.scrollDirection
+            ? intersection.width > 0
+            : intersection.height > 0;
 
-      bool isIntersecting = Axis.horizontal == scrollDirection
-          ? intersection.width > 0
-          : intersection.height > 0;
+        // debugPrint(
+        //     "value: ${widget.value} | isIntersecting: $isIntersecting | rect: $rect | highlightedWidgetRect: ${widget.highlightedWidgetRect}");
 
-      return isIntersecting
-          ? BlendMask(
-              blendMode: BlendMode.difference,
-              opacity: 1,
-              // intersectionRect: Rect.zero,
-              child: Text(
-                value,
+        return isIntersecting
+            ? BlendMask(
+                blendMode: BlendMode.difference,
+                opacity: 1,
+                // intersectionRect: Rect.zero,
+                child: Text(
+                  widget.value,
+                  softWrap: false,
+                  textAlign: TextAlign.center,
+                  style: widget.highlightedTextStyle,
+                ),
+              )
+            : Text(
+                widget.value,
                 softWrap: false,
                 textAlign: TextAlign.center,
-                style: highlightedTextStyle,
-              ),
-            )
-          : Text(
-              value,
-              softWrap: false,
-              textAlign: TextAlign.center,
-              style: notHighlightedTextStyle,
-            );
-    });
+                style: widget.notHighlightedTextStyle,
+              );
+      },
+    );
 
     return SizedBox(
-      width: width,
-      height: height,
+      width: widget.width,
+      height: widget.height,
       child: Center(
         child: text,
       ),

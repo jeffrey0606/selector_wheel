@@ -117,7 +117,7 @@ class _SelectorWheelState<T> extends State<SelectorWheel<T>> {
 
   late final StreamController<T> _streamController;
 
-  final GlobalKey _highlightedWidgetGlobalKey = GlobalKey();
+  BuildContext? _highlightedWidgetContext;
 
   @override
   void initState() {
@@ -136,17 +136,6 @@ class _SelectorWheelState<T> extends State<SelectorWheel<T>> {
           .add(widget.convertIndexToValue(_controller.selectedItem).value));
 
     // if the selectedItemIndex is set, jump to it after the first frame
-    if (widget.selectedItemIndex != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _controller.jumpToItem(widget.selectedItemIndex!);
-      });
-    }
-  }
-
-  @override
-  void didUpdateWidget(oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
     if (widget.selectedItemIndex != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _controller.jumpToItem(widget.selectedItemIndex!);
@@ -177,11 +166,17 @@ class _SelectorWheelState<T> extends State<SelectorWheel<T>> {
             alignment: Alignment.center,
             child: Center(
               child: SelectorWheelHighlight(
-                height: widget.highlightHeight ?? widget.childHeight,
-                width: widget.highlightWidth ?? widget.width,
-                borderRadius: borderRadius,
-                key: _highlightedWidgetGlobalKey,
-              ),
+                  height: widget.highlightHeight ?? widget.childHeight,
+                  width: widget.highlightWidth ?? widget.width,
+                  borderRadius: borderRadius,
+                  onContext: (context) {
+                    if (widget.blendMode) {
+                      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                        _highlightedWidgetContext = context;
+                        setState(() {});
+                      });
+                    }
+                  }),
             ),
           ),
           Align(
@@ -199,8 +194,9 @@ class _SelectorWheelState<T> extends State<SelectorWheel<T>> {
               selectedItemIndex: widget.selectedItemIndex,
               highlightedTextStyle: widget.highlightedTextStyle,
               scrollDirection: widget.scrollDirection,
-              highlightedWidgetGlobalKey: _highlightedWidgetGlobalKey,
+              highlightedWidgetContext: _highlightedWidgetContext,
               blendMode: widget.blendMode,
+              containerContext: context,
             ),
           ),
           if (enableFadeOut) ...[
